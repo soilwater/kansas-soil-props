@@ -27,8 +27,15 @@ FULL = ROOT / 'kansas_mesonet_complete_soil_database.xlsx'
 ROSETTA = ROOT / 'swrc_vg_parameters.xlsx'
 OUT = ROOT / 'kansas_mesonet_soil_database_summary_2026.xlsx'
 
+CITE_DATABASE = ('Parker, N., Kluitenberg, G. J., Redmond, C., & Patrignani, A. (2022). A database of soil physical '
+                 'properties for the Kansas Mesonet. Soil Science Society of America Journal, 86(6), 1495-1508. '
+                 'https://doi.org/10.1002/saj2.20465')
+CITE_THERMAL = ('Patrignani, A., Ghanbarian, B., Kluitenberg, G. J., & Parker, N. (2023). Validation of the '
+                'percolation‐based effective‐medium approximation model to estimate soil thermal conductivity. '
+                'Soil Science Society of America Journal, 87(6), 1275-1284. https://doi.org/10.1002/saj2.20585')
+
 KEY = ['station_name', 'ring_number']
-IDS = ['station_name', 'county', 'latitude', 'longitude', 'ring_number', 'core_number',
+IDS =['station_name', 'county', 'latitude', 'longitude', 'ring_number', 'core_number',
        'top_depth', 'bottom_depth', 'nominal_depth']
 SUFFIX = {'sat': 'sat', '5kPa': '5kPa', '10kPa': '10kPa', '33kPa': '33kPa', '70kPa': '70kPa',
           'ad2': 'air_dry_2day', 'ad3': 'air_dry_3day', 'od40': 'ovendry_40'}
@@ -384,18 +391,17 @@ def main():
 
     wb = Workbook()
     wb.remove(wb.active)
-    # Citation and version go right below the header of the first tab
-    refs = meta['references']
-    citation = refs.loc[refs.apply(lambda r: r.astype(str).str.contains('Recommended citation').any(), axis=1), 0].iloc[0]
+    # Citations and version go right below the header of the first tab
     desc = meta['description'].dropna(how='all').reset_index(drop=True)
-    top = pd.DataFrame([['How to cite', citation],
+    top = pd.DataFrame([['How to cite (database)', CITE_DATABASE],
+                        ['How to cite (thermal properties)', CITE_THERMAL],
                         ['Version', '2026 summary: QA/QC corrections applied (see qaqc_log), Rosetta van Genuchten '
                                     'parameters and heat-pulse time series added. Additional references in the references tab.']],
                        columns=desc.columns)
     desc = pd.concat([desc.iloc[:1], top, desc.iloc[1:]], ignore_index=True)
     ws = wb.create_sheet('description')
     write_raw(ws, desc)
-    for cell in ws[1] + ws[2]:
+    for cell in ws[1] + ws[2] + ws[3]:
         cell.font = HEAD
     write_raw(wb.create_sheet('references'), meta['references'])
     md = meta['metadata and units'].copy()
