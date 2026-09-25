@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <title>Kansas Mesonet Soils</title>
+  <meta name="description" content="Explore physical, hydraulic, thermal, color, and chemical properties of undisturbed soil cores from 40 Kansas Mesonet stations.">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <header class="top">
+    <div class="brand">
+      <h1>Kansas Mesonet Soils</h1>
+      <p class="sub" id="summary"></p>
+    </div>
+    <nav class="tabs" role="tablist">
+      <button role="tab" data-view="scatter" aria-selected="true">Scatter</button>
+      <button role="tab" data-view="hist">Histogram</button>
+      <button role="tab" data-view="texture">Texture triangle</button>
+      <button role="tab" data-view="pulse">Heat pulse</button>
+    </nav>
+    <a class="download" href="data/kansas_mesonet_soil_database_summary_2026.xlsx" download
+       title="Corrected summary workbook: all properties, heat-pulse time series and QA/QC notes">Download data (.xlsx)</a>
+  </header>
+
+  <!-- Global filters: scope Scatter, Histogram and Texture triangle -->
+  <section class="filters" id="filters">
+    <div class="field">
+      <span class="label">Depth</span>
+      <div class="chips" id="depthChips"></div>
+    </div>
+    <label class="field"><span class="label">Station</span><select id="fStation"></select></label>
+    <label class="field"><span class="label">Texture</span><select id="fTexture"></select></label>
+    <button class="link-btn" id="resetFilters">Reset</button>
+    <span class="count" id="filterCount"></span>
+  </section>
+
+  <main>
+    <!-- Scatter -->
+    <section class="view" id="view-scatter">
+      <div class="controls">
+        <label class="field"><span class="label">X</span><select id="sX"></select></label>
+        <button class="icon-btn small" id="sSwap" title="Swap axes" aria-label="Swap X and Y">⇄</button>
+        <label class="field"><span class="label">Y</span><select id="sY"></select></label>
+        <label class="field"><span class="label">Color</span><select id="sColor"></select></label>
+        <div class="check-row">
+          <label class="check"><input type="checkbox" id="sLogX"> log X</label>
+          <label class="check"><input type="checkbox" id="sLogY"> log Y</label>
+          <label class="check"><input type="checkbox" id="sFit" checked> Fit</label>
+        </div>
+      </div>
+      <div class="layout">
+        <div class="card chart-card">
+          <div class="chart-head">
+            <div class="stats" id="sStats"></div>
+            <div class="legend" id="sLegend"></div>
+          </div>
+          <div class="chart" id="sChart"></div>
+          <div class="chart-foot">
+            <span class="note" id="sNote"></span>
+            <span class="actions"><button class="link-btn" id="sTableBtn">Show table</button><button class="link-btn" id="sCsv">Download CSV</button></span>
+          </div>
+          <div class="table-wrap" id="sTable" hidden></div>
+        </div>
+        <aside class="card detail" id="detail"></aside>
+      </div>
+    </section>
+
+    <!-- Histogram -->
+    <section class="view" id="view-hist" hidden>
+      <div class="controls">
+        <label class="field"><span class="label">Variable</span><select id="hVar"></select></label>
+        <label class="field"><span class="label">Bins</span><input type="range" id="hBins" min="5" max="40" value="15"><span class="val" id="hBinsVal">15</span></label>
+        <label class="check"><input type="checkbox" id="hLog"> log</label>
+        <label class="check"><input type="checkbox" id="hByDepth"> Split by depth</label>
+      </div>
+      <div class="card chart-card">
+        <div class="chart" id="hChart"></div>
+        <div class="chart-foot"><span class="note" id="hNote"></span></div>
+      </div>
+    </section>
+
+    <!-- Texture triangle -->
+    <section class="view" id="view-texture" hidden>
+      <div class="controls">
+        <label class="field"><span class="label">Color</span><select id="tColor"></select></label>
+        <label class="check"><input type="checkbox" id="tLabels" checked> Class labels</label>
+      </div>
+      <div class="layout">
+        <div class="card chart-card">
+          <div class="chart-head"><div class="stats" id="tStats"></div><div class="legend" id="tLegend"></div></div>
+          <div class="chart" id="tChart"></div>
+          <div class="chart-foot"><span class="note">USDA textural classes. Particle size by hydrometer; measured on one core per depth and shared with its paired core.</span></div>
+        </div>
+        <aside class="card detail" id="detail2"></aside>
+      </div>
+    </section>
+
+    <!-- Heat pulse -->
+    <section class="view" id="view-pulse" hidden>
+      <div class="controls">
+        <label class="field"><span class="label">Station</span><select id="pStation"></select></label>
+        <label class="field"><span class="label">Depth</span><select id="pDepth"></select></label>
+        <label class="field"><span class="label">Core</span><select id="pCore"></select></label>
+        <label class="check"><input type="checkbox" id="pModel"> Line-source model</label>
+      </div>
+      <p class="stats" id="pStats"></p>
+      <div class="pulse-grid">
+        <div class="card chart-card">
+          <p class="card-title">Temperature rise at the sensing needle</p>
+          <div class="chart-head"><div class="legend" id="pLegend"></div></div>
+          <div class="chart" id="pChart"></div>
+          <div class="chart-foot"><span class="note" id="pNote"></span></div>
+        </div>
+        <div class="card chart-card">
+          <p class="card-title">Thermal properties vs water content</p>
+          <div class="chart-head">
+            <div class="seg" id="pProp">
+              <button data-v="lam" aria-pressed="true">λ</button>
+              <button data-v="cv">C</button>
+              <button data-v="dif">D</button>
+            </div>
+          </div>
+          <div class="chart" id="pPropChart"></div>
+          <div class="chart-foot"><span class="note" id="pPropNote"></span></div>
+        </div>
+      </div>
+      <div class="card chart-card" style="margin-top:16px">
+        <p class="card-title">Measurements for this core</p>
+        <div class="table-wrap open" id="pTable"></div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="foot">
+    <p>Data: Parker, N., Kluitenberg, G. J., Redmond, C., &amp; Patrignani, A. (2022). A database of soil physical properties for the Kansas Mesonet. <i>SSSA Journal</i>, 86(6), 1495–1508. <a href="https://doi.org/10.1002/saj2.20465">doi:10.1002/saj2.20465</a> · Thermal properties: Patrignani et al. (2023), <a href="https://doi.org/10.1002/saj2.20585">doi:10.1002/saj2.20585</a></p>
+  </footer>
+
+  <div class="tooltip" id="tooltip" role="status" hidden></div>
+
+  <script src="data/soil_data.js"></script>
+  <script src="js/charts.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
