@@ -120,7 +120,9 @@
     hi: { v: 'bd', bins: 15, log: false, byDepth: false },
     tx: { color: 'soil_dry', labels: true },
     pu: { id: null, model: false, prop: 'lam' },
+    at: { station: '' },
   };
+  const ATLAS = window.ATLAS;
   const passes = c => F.depths.has(c.depth) && (!F.station || c.station === F.station) && (!F.texture || c.texture === F.texture);
   const filtered = () => cores.filter(passes);
 
@@ -131,6 +133,7 @@
     if (S.view === 'hist') set({ v: S.hi.v, bins: S.hi.bins, log: +S.hi.log, bd: +S.hi.byDepth });
     if (S.view === 'texture') set({ c: S.tx.color });
     if (S.view === 'pulse') set({ core: S.pu.id, prop: S.pu.prop, model: +S.pu.model });
+    else if (S.view === 'atlas') { if (S.at.station) p.set('station', S.at.station); }
     else {
       if (F.depths.size < 4) p.set('depths', [...F.depths].join(','));
       if (F.station) p.set('station', F.station);
@@ -141,7 +144,8 @@
   }
   function loadHash() {
     const p = new URLSearchParams(location.hash.slice(1)), g = k => p.get(k);
-    if (['scatter', 'hist', 'texture', 'pulse'].includes(g('view'))) S.view = g('view');
+    if (['scatter', 'hist', 'texture', 'pulse', 'atlas'].includes(g('view'))) S.view = g('view');
+    if (S.view === 'atlas' && ATLAS?.stations[g('station')]) S.at.station = g('station');
     if (V[g('x')]) S.sc.x = g('x');
     if (V[g('y')]) S.sc.y = g('y');
     if (S.view === 'scatter' && g('c')) S.sc.color = g('c');
@@ -156,7 +160,7 @@
     if (PROP[g('prop')]) S.pu.prop = g('prop');
     S.pu.model = g('model') === '1';
     if (g('depths')) { const d = g('depths').split(',').map(Number).filter(x => DEPTHS.includes(x)); if (d.length) F.depths = new Set(d); }
-    if (STATIONS.includes(g('station'))) F.station = g('station');
+    if (S.view !== 'atlas' && STATIONS.includes(g('station'))) F.station = g('station');
     if (TEXTURES.includes(g('texture'))) F.texture = g('texture');
     if (g('sel') !== null && cores[+g('sel')]) S.sel = +g('sel');
   }
@@ -316,9 +320,10 @@
       <div class="mini"></div>
       ${c.meas.length ? `<h3>Thermal properties</h3>
       <table><thead><tr><th class="l">State</th><th>θ</th><th>λ</th><th>C</th></tr></thead><tbody>${thermRows}</tbody></table>
-      <button class="go">View heat-pulse curves →</button>` : ''}`;
-    const go = host.querySelector('.go');
-    if (go) go.addEventListener('click', () => { S.pu.id = c.id; switchView('pulse'); });
+      <button class="go" data-go="pulse">View heat-pulse curves →</button>` : ''}
+      ${ATLAS && ATLAS.stations[c.station] ? '<button class="go" data-go="atlas">View core photos →</button>' : ''}`;
+    host.querySelector('[data-go="pulse"]')?.addEventListener('click', () => { S.pu.id = c.id; switchView('pulse'); });
+    host.querySelector('[data-go="atlas"]')?.addEventListener('click', () => { S.at.station = c.station; switchView('atlas'); });
     miniRetention(host.querySelector('.mini'), c);
   }
 
@@ -762,15 +767,94 @@
   }
 
   // ---------------------------------------------------------------------------
+  // Core photo atlas: deep-zoom tiles (OpenSeadragon), preview shown while tiles load
+  // ---------------------------------------------------------------------------
+  let atlasViewer = null;
+
+  function initAtlasControls() {
+    if (!ATLAS) { $('view-atlas').innerHTML = '<p class="note">Photo atlas not available.</p>'; return; }
+    $('aStation').innerHTML = '<option value="">Whole atlas</option>'
+      + Object.keys(ATLAS.stations).map(s => `<option>${s}</option>`).join('');
+    $('aStation').addEventListener('change', e => { S.at.station = e.target.value; goToStation(); saveHash(); });
+    $('aFull').href = ATLAS.full;
+    $('aFull').textContent = `Download full resolution (${ATLAS.fullMB} MB)`;
+    $('aZoomIn').addEventListener('click', () => { hideAtlasPreview(); atlasViewer?.viewport.zoomBy(1.6); });
+    $('aZoomOut').addEventListener('click', () => { hideAtlasPreview(); atlasViewer?.viewport.zoomBy(1 / 1.6); });
+    $('aHome').addEventListener('click', () => { S.at.station = ''; $('aStation').value = ''; goToStation(); saveHash(); });
+    $('aFullscreen').addEventListener('click', () => {
+      if (document.fullscreenElement) document.exitFullscreen();
+      else $('atlasWrap').requestFullscreen?.();
+    });
+  }
+
+  // Created on first visit so the ~29 MB of tiles and the preview load only when wanted
+  function ensureAtlasViewer() {
+    if (atlasViewer || !ATLAS || !window.OpenSeadragon) return;
+    const preview = $('atlasPreview');
+    preview.src = ATLAS.preview;
+    atlasViewer = OpenSeadragon({
+      element: $('atlasViewer'),
+      tileSources: {   // inline DZI descriptor: no metadata request, so it also works from file://
+        Image: {
+          xmlns: 'http://schemas.microsoft.com/deepzoom/2008', Url: ATLAS.tiles, Format: ATLAS.format,
+          Overlap: String(ATLAS.overlap), TileSize: String(ATLAS.tileSize),
+          Size: { Width: String(ATLAS.width), Height: String(ATLAS.height) },
+        },
+      },
+      showNavigationControl: false,
+      showNavigator: true, navigatorPosition: 'BOTTOM_RIGHT', navigatorBackground: '#000',
+      navigatorSizeRatio: 0.14, navigatorBorderColor: '#383835', navigatorDisplayRegionColor: '#3987e5',
+      visibilityRatio: 1, constrainDuringPan: true, maxZoomPixelRatio: 2,
+      gestureSettingsMouse: { clickToZoom: false, dblClickToZoom: true },
+      animationTime: 0.6,
+    });
+    // The preview matches only the whole-atlas view, so it goes as soon as the view leaves home
+    ['canvas-drag', 'canvas-scroll', 'canvas-pinch', 'canvas-double-click']
+      .forEach(ev => atlasViewer.addHandler(ev, hideAtlasPreview));
+    const onOpen = () => {
+      goToStation(true);
+      const item = atlasViewer.world.getItemAt(0);
+      const done = () => { hideAtlasPreview(); $('atlasStatus').classList.add('done'); };
+      if (item.whenFullyLoaded) item.whenFullyLoaded(done);   // OpenSeadragon ≥ 4
+      else if (item.getFullyLoaded()) done();
+      else item.addHandler('fully-loaded-change', e => { if (e.fullyLoaded) done(); });
+      setTimeout(done, 15000);   // never leave the preview covering a working viewer
+    };
+    // An inline tile source can open synchronously, before a handler could be attached
+    if (atlasViewer.world.getItemCount()) onOpen();
+    else atlasViewer.addOnceHandler('open', onOpen);
+    atlasViewer.addHandler('open-failed', () => { $('atlasStatus').textContent = 'Could not load the high-resolution tiles; showing the preview.'; });
+  }
+
+  function hideAtlasPreview() { $('atlasPreview').classList.add('done'); }
+
+  function goToStation(immediately = false) {
+    if (!atlasViewer?.world.getItemAt(0)) return;
+    const box = ATLAS.stations[S.at.station];
+    if (!box) { atlasViewer.viewport.goHome(immediately); return; }
+    hideAtlasPreview();
+    const [x, y, w, h] = box, pad = 0.04 * w;
+    atlasViewer.viewport.fitBounds(atlasViewer.viewport.imageToViewportRectangle(x - pad, y - pad, w + 2 * pad, h + 2 * pad), immediately);
+  }
+
+  // Also runs on window resize, so it must not reset the user's zoom (switchView recenters)
+  function renderAtlas() {
+    if (!ATLAS) return;
+    $('aStation').value = S.at.station;
+    ensureAtlasViewer();
+  }
+
+  // ---------------------------------------------------------------------------
   // View switching & boot
   // ---------------------------------------------------------------------------
   function switchView(v) {
     S.view = v;
     document.querySelectorAll('.tabs button').forEach(b => b.setAttribute('aria-selected', String(b.dataset.view === v)));
     document.querySelectorAll('.view').forEach(s => { s.hidden = s.id !== `view-${v}`; });
-    $('filters').hidden = v === 'pulse';
+    $('filters').hidden = v === 'pulse' || v === 'atlas';
     window.scrollTo(0, 0);
     render();
+    if (v === 'atlas') goToStation();
   }
 
   function render() {
@@ -780,6 +864,7 @@
     if (S.view === 'hist') renderHist();
     if (S.view === 'texture') { renderTexture(); renderDetail($('detail2')); }
     if (S.view === 'pulse') renderPulse();
+    if (S.view === 'atlas') renderAtlas();
     saveHash();
   }
 
@@ -791,6 +876,7 @@
     initHist();
     initTexture();
     initPulse();
+    initAtlasControls();
     document.querySelectorAll('.tabs button').forEach(b => b.addEventListener('click', () => switchView(b.dataset.view)));
     let t; window.addEventListener('resize', () => { clearTimeout(t); t = setTimeout(render, 120); });
     switchView(S.view);

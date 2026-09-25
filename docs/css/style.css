@@ -36,6 +36,7 @@ a { color: var(--accent); }
   display: flex; align-items: center; gap: 24px; flex-wrap: wrap;
   padding: 16px 24px 12px;
 }
+.brand { flex: 1 1 280px; min-width: 0; }   /* subtitle wraps before the tabs or download button do */
 .brand h1 { font-size: 18px; font-weight: 600; margin: 0; letter-spacing: -0.01em; }
 .brand .sub { margin: 2px 0 0; color: var(--muted); font-size: 12.5px; }
 .tabs { display: flex; gap: 2px; margin-left: auto; }
@@ -155,6 +156,25 @@ main .controls { padding: 0; }
 .tri-class-label { fill: var(--ink-2); font-size: 11px; text-anchor: middle; pointer-events: none;
   paint-order: stroke; stroke: var(--surface); stroke-width: 3px; }
 
+/* Core photo atlas */
+.atlas-wrap {
+  position: relative; width: 100%; aspect-ratio: 12500 / 9670; max-height: 82vh;
+  background: #000; border: 1px solid var(--border); border-radius: 12px; overflow: hidden;
+}
+.atlas-wrap:fullscreen { max-height: none; border-radius: 0; border: 0; }
+.atlas-preview, .atlas-viewer { position: absolute; inset: 0; width: 100%; height: 100%; }
+.atlas-preview { object-fit: contain; transition: opacity 0.4s; pointer-events: none; z-index: 1; }
+.atlas-preview.done { opacity: 0; }
+.atlas-tools { position: absolute; top: 10px; right: 10px; display: flex; flex-direction: column; gap: 6px; z-index: 2; }
+.atlas-tools .icon-btn { background: rgba(26, 26, 25, 0.85); }
+.atlas-status {
+  position: absolute; left: 12px; bottom: 10px; z-index: 2; font-size: 12px; color: var(--ink-2);
+  background: rgba(26, 26, 25, 0.85); padding: 3px 8px; border-radius: 6px; transition: opacity 0.4s;
+}
+.atlas-status.done { opacity: 0; }
+.atlas-caption { margin: 8px 0 0; }
+#aFull { margin-left: auto; }
+
 /* Detail panel */
 .detail { padding: 16px; font-size: 13px; position: sticky; top: 12px; }
 .detail .empty { color: var(--muted); }
@@ -171,6 +191,7 @@ main .controls { padding: 0; }
 .kv dd .u { color: var(--muted); font-size: 11px; margin-left: 3px; }
 .detail .go { margin-top: 12px; width: 100%; font: inherit; border: 1px solid var(--border); background: var(--wash); color: var(--ink); border-radius: 8px; padding: 7px; cursor: pointer; }
 .detail .go:hover { border-color: var(--accent); }
+.detail .go + .go { margin-top: 8px; }
 .mini svg { display: block; width: 100%; }
 .mini-cap { font-size: 11.5px; color: var(--ink-2); margin-top: 2px; line-height: 1.5; font-variant-numeric: tabular-nums; }
 
@@ -210,5 +231,8 @@ td .sw { display: inline-block; width: 10px; height: 10px; border-radius: 50%; m
   .top, .filters, main, .foot { padding-left: 16px; padding-right: 16px; }
   .tabs { margin-left: 0; width: 100%; overflow-x: auto; }
   .filters .count { margin-left: 0; }
+  .atlas-tools { top: 6px; right: 6px; gap: 4px; }
+  .atlas-tools .icon-btn { width: 26px; height: 26px; font-size: 13px; }
+  #aFull { margin-left: 0; }
   select { max-width: 200px; }
 }

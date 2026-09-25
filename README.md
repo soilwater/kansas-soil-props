@@ -32,6 +32,17 @@ there as per-state variables (e.g. λ saturated, λ 33 kPa).
   marked, optional ideal line-source model), next to λ, C or D vs water content for that core
   against all other cores. The C panel includes the de Vries mixing line
   C = ρb·cs + θ·Cw (cs = 0.75 MJ Mg⁻¹ K⁻¹).
+- **Core photos**: a zoomable atlas of 222 undisturbed cores photographed at saturation
+  (29 stations). The core panel's "View core photos" button zooms to that core's station.
+
+The photo atlas (12,500 × 9,670 px) is served as Deep Zoom tiles through
+[OpenSeadragon](https://openseadragon.github.io/) (BSD-3-Clause, kept in `docs/js/vendor/`), so
+browsers load only the tiles on screen; the preview image shows while they load. After replacing
+`docs/data/kansas_mesonet_soil_atlas_black.jpg`, regenerate the tiles and station positions:
+
+```
+python scripts/build_atlas_tiles.py
+```
 
 The URL hash stores the current view, so a specific plot can be bookmarked or shared.
 

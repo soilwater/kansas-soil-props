@@ -19,6 +19,7 @@
       <button role="tab" data-view="hist">Histogram</button>
       <button role="tab" data-view="texture">Texture triangle</button>
       <button role="tab" data-view="pulse">Heat pulse</button>
+      <button role="tab" data-view="atlas">Core photos</button>
     </nav>
     <a class="download" href="data/kansas_mesonet_soil_database_summary_2026.xlsx" download
        title="Corrected summary workbook: all properties, heat-pulse time series and QA/QC notes">Download data (.xlsx)</a>
@@ -131,6 +132,27 @@
         <div class="table-wrap open" id="pTable"></div>
       </div>
     </section>
+
+    <!-- Core photo atlas (deep-zoom tiles; the preview shows while tiles load) -->
+    <section class="view" id="view-atlas" hidden>
+      <div class="controls">
+        <label class="field"><span class="label">Go to station</span><select id="aStation"></select></label>
+        <span class="note">Scroll or pinch to zoom · drag to pan · double-click to zoom in</span>
+        <a class="link-btn" id="aFull" download>Download full resolution</a>
+      </div>
+      <div class="atlas-wrap" id="atlasWrap">
+        <img class="atlas-preview" id="atlasPreview" alt="Photo atlas of undisturbed soil cores from the Kansas Mesonet">
+        <div class="atlas-viewer" id="atlasViewer"></div>
+        <div class="atlas-tools">
+          <button class="icon-btn" id="aZoomIn" title="Zoom in" aria-label="Zoom in">+</button>
+          <button class="icon-btn" id="aZoomOut" title="Zoom out" aria-label="Zoom out">−</button>
+          <button class="icon-btn" id="aHome" title="Show whole atlas" aria-label="Show whole atlas">⌂</button>
+          <button class="icon-btn" id="aFullscreen" title="Full screen" aria-label="Full screen">⛶</button>
+        </div>
+        <span class="atlas-status" id="atlasStatus">Loading high-resolution tiles…</span>
+      </div>
+      <p class="note atlas-caption">222 undisturbed cores photographed at saturation · 29 stations · 5, 10, 20 and 50 cm · two cores per depth. Collected in 2018–2019 by Nathaniel Parker and Andres Patrignani.</p>
+    </section>
   </main>
 
   <footer class="foot">
@@ -142,6 +164,8 @@
   <div class="tooltip" id="tooltip" role="status" hidden></div>
 
   <script src="data/soil_data.js"></script>
+  <script src="data/atlas.js"></script>
+  <script src="js/vendor/openseadragon.min.js"></script>
   <script src="js/charts.js"></script>
   <script src="js/app.js"></script>
 </body>
